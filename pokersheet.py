@@ -56,32 +56,53 @@ def add_totals(sheet, entry_cnt):
 	sheet.write(entry_cnt+1,4,xlwt.Formula('SUM(E1:E' + str(entry_cnt) + ')'))
 	sheet.write(entry_cnt+1,5,xlwt.Formula('SUM(F1:F' + str(entry_cnt) + ')'))
 
+def process_file(in_file, out_file):
+	flines = in_file.readlines()
+
+	# Create pattern match entries
+	#   One for a normal session entry
+	#   One for a new year
+	#   One for year-end totals
+	pat_entry = re.compile(r"\d+\/\d+")
+	pat_year = re.compile(r"\d{4}")
+	pat_yearend = re.compile(r"\d{4}")
+	entry_cnt = 0
+	year_list = []	
+
+	wbk = xlwt.Workbook()
+
+	# Create sheet, in case we don't find a leading year
+	sheet = wbk.add_sheet('2009');
+
+	for line in flines:
+		if pat_entry.match(line):
+			# Found a session entry
+			add_entry(sheet, entry_cnt, line)
+			entry_cnt += 1
+			#print "Date " + pat_entry.match(line).group(0)
+		elif pat_year.match(line):
+			# Found a year
+			print "Year " + pat_year.match(line).group(0)
+			add_totals(sheet, entry_cnt)
+			year = (int)(pat_year.match(line).group(0)) + 1
+			if year not in year_list:
+				sheet = wbk.add_sheet(str(year))
+				year_list.append(year)
+			entry_cnt = 0
+		else:
+			if line != '\n':
+				print "Found some other kind of line"
+				print line
+		#if re.search(line.split())
+
+	# Add final totals if file doesn't already end in total
+	add_totals(sheet, entry_cnt)
+
+	wbk.save(out_file)
+
 args = get_args()
 
-fh = open(args.input)
-flines = fh.readlines()
-pat_entry = re.compile(r"\d+\/\d+")
-pat_year = re.compile(r"\d{4}")
-entry_cnt = 0;
-wbk = xlwt.Workbook()
-sheet = wbk.add_sheet('2009');
-for line in flines:
-	if pat_entry.match(line):
-		# Found an entry
-		add_entry(sheet, entry_cnt, line)
-		entry_cnt += 1
-		mystr = pat_entry.match(line)
-		#print "Date " + pat_entry.match(line).group(0)
-	elif pat_year.match(line):
-		# Found a year
-		print "Year " + pat_year.match(line).group(0)
-		add_totals(sheet, entry_cnt)
-		year = (int)(pat_year.match(line).group(0)) + 1
-		sheet = wbk.add_sheet(str(year))
-		entry_cnt = 0
-	else:
-		print "Found some other kind of line"
-		print line
-	#if re.search(line.split())
+input_file = open(args.input)
+output_file = args.output
+process_file(input_file, output_file)
 
-wbk.save(args.output)
