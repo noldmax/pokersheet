@@ -13,42 +13,54 @@ def get_args():
 	parser.add_argument('-o', '--output', action='store_true', default='pokersheet.xls', help='output xls file containing poker data')
 	return parser.parse_args()
 
+def fill_date_location(sheet, row, entry_cnt, date, place):
+	sheet.write(entry_cnt,row,date)
+	sheet.write(entry_cnt,row+1,place)
+	return row+2
+
+def fill_cash_result(sheet, row, entry_cnt, dough_str):
+	# Check for cash given after win
+	given_match = re.match(".*[(]", dough_str)
+	if given_match:
+		result = re.search("(.*)\w?(\(.*\))\w?$", dough_str)
+		print "matched ("
+	else:
+		result = re.search("(.*)\w?$", dough_str)
+		print "nope, no ("
+	given = re.search("\((.*)\)", dough_str)
+	if result:
+		print "result=" + result.group(1)
+		# Strip '+' if positive result
+		result = re.search("\+?(.*)", result.group(1))
+		sheet.write(entry_cnt,row,int(result.group(1)))
+	if given:
+		print "given=" + given.group(1)
+		sheet.write(entry_cnt,row+1,int(given.group(1)))
+	return row+2
+
 def add_entry(sheet, entry_cnt, line):
 	#print line
-	# If hours not specified, assume 4
+	cur_row = 1;
+
+	# Extract entry components
 	if len(line.split(" - ")) == 4:
 		date, place, dough, hours = line.split(" - ")
 	elif len(line.split(" - ")) == 3:
+		# If hours not specified, assume 4
 		date, place, dough = line.split(" - ")
 		hours = '4'
 	else:
 		print "Invalid entry format.  Needs either 3 or 4 /-delimited values"
 
-	# Write Date, Location
-	sheet.write(entry_cnt,1,date)
-	sheet.write(entry_cnt,2,place)
+	# Write Date, Location, Game
+	cur_row = fill_date_location(sheet, cur_row, entry_cnt, date, place)
 	#print "dough=" + dough + ", hours=" + str(hours)
 
-	# Check for cash given after win
-	given_match = re.match(".*[(]", dough)
-	if given_match:
-		result = re.search("(.*)\w?(\(.*\))\w?$", dough)
-		#print "matched ("
-	else:
-		result = re.search("(.*)\w?$", dough)
-		#print "nope, no ("
-	given = re.search("\((.*)\)", dough)
-	if result:
-		#print "result=" + result.group(1)
-		# Strip '+' if positive result
-		result = re.search("\+?(.*)", result.group(1))
-		sheet.write(entry_cnt,3,int(result.group(1)))
-	if given:
-		#print "given=" + given.group(1)
-		sheet.write(entry_cnt,4,int(given.group(1)))
+	# Write winnings/losings and money given (if any)
+	cur_row = fill_cash_result(sheet, cur_row, entry_cnt, dough)
 
 	# Write Hours
-	sheet.write(entry_cnt,5,int(hours))
+	sheet.write(entry_cnt,cur_row,int(hours))
 
 def add_totals(sheet, entry_cnt):
 	sheet.write(entry_cnt+1,2,'Total')
@@ -82,10 +94,11 @@ def process_file(in_file, out_file):
 			#print "Date " + pat_entry.match(line).group(0)
 		elif pat_year.match(line):
 			# Found a year
-			print "Year " + pat_year.match(line).group(0)
-			add_totals(sheet, entry_cnt)
+			if entry_cnt != 0:
+				add_totals(sheet, entry_cnt)
 			year = (int)(pat_year.match(line).group(0)) + 1
 			if year not in year_list:
+				print "Year " + pat_year.match(line).group(0)
 				sheet = wbk.add_sheet(str(year))
 				year_list.append(year)
 			entry_cnt = 0
