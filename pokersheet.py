@@ -16,12 +16,22 @@ def get_args():
 def fill_date_location(sheet, row, entry_cnt, date, place):
 	sheet.write(entry_cnt,row,date)
 	sheet.write(entry_cnt,row+1,place)
-	return row+2
+	
+	#pat_plo = re.search(".*{(PLO),(plo)}$", place)
+	pat_plo = re.search(".*(PLO)$", place)
+	pat_mitt = re.search(".*(MITT)$", place)
+	if pat_plo:
+		sheet.write(entry_cnt,row+2,"PLO")
+	elif pat_mitt:
+		sheet.write(entry_cnt,row+2,"MITT")
+	else:
+		sheet.write(entry_cnt,row+2,"NLHE")
+
+	return row+3
 
 def fill_cash_result(sheet, row, entry_cnt, dough_str):
 	# Check for cash given after win
-	given_match = re.match(".*[(]", dough_str)
-	if given_match:
+	if re.match(".*[(]", dough_str):
 		result = re.search("(.*)\w?(\(.*\))\w?$", dough_str)
 		print "matched ("
 	else:
