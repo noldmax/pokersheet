@@ -5,6 +5,39 @@ import xlwt
 import re
 import argparse
 
+class AutoVivification(dict):
+	"""Implementation of perl's autovivification feature."""
+	def __getitem__(self, item):
+		try:
+			return dict.__getitem__(self, item)
+		except KeyError:
+			value = self[item] = type(self)()
+			return value
+
+class AnnualStats:
+	year = ""
+	games = {}
+
+	def __init__(self, yr):
+		self.year = yr
+
+	def add_game(game):
+		if not game in games:
+			games[game] = {'hrs': 0, 'dough': 0}
+
+	def add_dough(game, dough):
+		if not game in games:
+			print "no game error"
+			return
+		games[game]['dough'] += dough
+		print ("Added %d to get new dough %d" % (dough, games[game]['dough']))
+
+	def add_hrs(game, hrs):
+		if not game in games:
+			print "no game error"
+			return
+		games[game]['hrs'] += dough
+		print ("Added %d to get new hrs %d" % (hrs, games[game]['hrs']))
 
 def get_args():
 	"""Parse and return command-line arguments passed"""
@@ -13,7 +46,7 @@ def get_args():
 	parser.add_argument('-o', '--output', action='store_true', default='pokersheet.xls', help='output xls file containing poker data')
 	return parser.parse_args()
 
-def fill_date_location(sheet, row, entry_cnt, date, place):
+def fill_date_location(stats, sheet, row, entry_cnt, date, place):
 	sheet.write(entry_cnt,row,date)
 	sheet.write(entry_cnt,row+1,place)
 	
@@ -22,14 +55,20 @@ def fill_date_location(sheet, row, entry_cnt, date, place):
 	pat_mitt = re.search(".*(MITT)$", place)
 	if pat_plo:
 		sheet.write(entry_cnt,row+2,"PLO")
+		stats.add_hrs("PLO", hrs)
+		stats.add_dough("PLO", dough)
 	elif pat_mitt:
 		sheet.write(entry_cnt,row+2,"MITT")
+		stats.add_hrs("MITT", hrs)
+		stats.add_dough("MITT", dough)
 	else:
 		sheet.write(entry_cnt,row+2,"NLHE")
+		stats.add_hrs("NLHE", hrs)
+		stats.add_dough("NLHE", dough)
 
 	return row+3
 
-def fill_cash_result(sheet, row, entry_cnt, dough_str):
+def fill_cash_result(stats, sheet, row, entry_cnt, dough_str):
 	# Check for cash given after win
 	if re.match(".*[(]", dough_str):
 		result = re.search("(.*)\w?(\(.*\))\w?$", dough_str)
@@ -48,7 +87,7 @@ def fill_cash_result(sheet, row, entry_cnt, dough_str):
 		sheet.write(entry_cnt,row+1,int(given.group(1)))
 	return row+2
 
-def add_entry(sheet, entry_cnt, line):
+def add_entry(stats, sheet, entry_cnt, line):
 	#print line
 	cur_row = 1;
 
@@ -63,11 +102,11 @@ def add_entry(sheet, entry_cnt, line):
 		print "Invalid entry format.  Needs either 3 or 4 /-delimited values"
 
 	# Write Date, Location, Game
-	cur_row = fill_date_location(sheet, cur_row, entry_cnt, date, place)
+	cur_row = fill_date_location(stats, sheet, cur_row, entry_cnt, date, place)
 	#print "dough=" + dough + ", hours=" + str(hours)
 
 	# Write winnings/losings and money given (if any)
-	cur_row = fill_cash_result(sheet, cur_row, entry_cnt, dough)
+	cur_row = fill_cash_result(stats, sheet, cur_row, entry_cnt, dough)
 
 	# Write Hours
 	sheet.write(entry_cnt,cur_row,int(hours))
@@ -94,21 +133,25 @@ def process_file(in_file, out_file):
 	wbk = xlwt.Workbook()
 
 	# Create sheet, in case we don't find a leading year
-	sheet = wbk.add_sheet('2009');
+	#sheet = wbk.add_sheet('2009');
 
 	for line in flines:
 		if pat_entry.match(line):
 			# Found a session entry
-			add_entry(sheet, entry_cnt, line)
+			if not year_list:
+				print "Must have a year before adding entries!  Invalid data file format"
+				return
+			add_entry(stats, sheet, entry_cnt, line)
 			entry_cnt += 1
 			#print "Date " + pat_entry.match(line).group(0)
 		elif pat_year.match(line):
 			# Found a year
 			if entry_cnt != 0:
-				add_totals(sheet, entry_cnt)
-			year = (int)(pat_year.match(line).group(0)) + 1
+				add_totals(stats, sheet, entry_cnt)
+			year = (int)(pat_year.match(line).group(0))
 			if year not in year_list:
 				print "Year " + pat_year.match(line).group(0)
+				stats = AnnualStats(year)
 				sheet = wbk.add_sheet(str(year))
 				year_list.append(year)
 			entry_cnt = 0
