@@ -36,44 +36,34 @@ class AnnualStats:
 		if not game in self.games:
 			print "no game error"
 			return
-		self.games[game]['hrs'] += dough
+		self.games[game]['hrs'] += hrs
 		print ("Added %d to get new hrs %d" % (hrs, self.games[game]['hrs']))
 
 def get_args():
 	"""Parse and return command-line arguments passed"""
 	parser = argparse.ArgumentParser(description='Parse poker data, create XLS')
-	parser.add_argument('-i', '--input', default='pokerdata', help='input pokerdata file (in format from iphone notes)')
-	parser.add_argument('-o', '--output', action='store_true', default='pokersheet.xls', help='output xls file containing poker data')
+	parser.add_argument('-i', '--input', default='pokerdata',
+	                    help='input pokerdata file (in format from iphone ' +
+	                    'notes)')
+	parser.add_argument('-o', '--output', action='store_true',
+	                    default='pokersheet.xls', help='output xls file ' +
+	                    'containing poker data')
 	return parser.parse_args()
 
-def fill_date_location(stats, sheet, row, entry_cnt, date, place):
+def fill_entry_row(stats, sheet, row, entry_cnt, date, place, dough_str, hours):
 	sheet.write(entry_cnt,row,date)
-	sheet.write(entry_cnt,row+1,place)
-	
-	#pat_plo = re.search(".*{(PLO),(plo)}$", place)
-	pat_plo = re.search(".*(PLO)$", place)
-	pat_mitt = re.search(".*(MITT)$", place)
-	if pat_plo:
-		sheet.write(entry_cnt,row+2,"PLO")
-		stats.add_hrs("PLO", hrs)
-		stats.add_dough("PLO", dough)
-	elif pat_mitt:
-		sheet.write(entry_cnt,row+2,"MITT")
-		stats.add_hrs("MITT", hrs)
-		stats.add_dough("MITT", dough)
-	else:
-		sheet.write(entry_cnt,row+2,"NLHE")
-		stats.add_hrs("NLHE", hrs)
-		stats.add_dough("NLHE", dough)
+	row += 1
+	sheet.write(entry_cnt,row,place)
+	row += 1
 
-	return row+3
-
-def fill_cash_result(stats, sheet, row, entry_cnt, dough_str):
 	# Check for cash given after win
 	if re.match(".*[(]", dough_str):
+	    # If winnings listed with following (X),
+	    # that specifies amount of winnings given away
 		result = re.search("(.*)\w?(\(.*\))\w?$", dough_str)
 		print "matched ("
 	else:
+	    # Just the winnings listed, so grab that value (in result)
 		result = re.search("(.*)\w?$", dough_str)
 		print "nope, no ("
 	given = re.search("\((.*)\)", dough_str)
@@ -81,11 +71,46 @@ def fill_cash_result(stats, sheet, row, entry_cnt, dough_str):
 		print "result=" + result.group(1)
 		# Strip '+' if positive result
 		result = re.search("\+?(.*)", result.group(1))
-		sheet.write(entry_cnt,row,int(result.group(1)))
+		dough = int(result.group(1))
+	else:
+	    dough = 0
 	if given:
 		print "given=" + given.group(1)
-		sheet.write(entry_cnt,row+1,int(given.group(1)))
-	return row+2
+		given_dough = int(given.group(1))
+	else:
+	    given_dough = 0
+
+	# Identify game type and store stats for that game
+	#pat_plo = re.search(".*{(PLO),(plo)}$", place)
+	pat_plo = re.search(".*(PLO)$", place)
+	pat_mitt = re.search(".*(MITT)$", place)
+	if pat_plo:
+		sheet.write(entry_cnt,row,"PLO")
+		stats.add_hrs("PLO", hours)
+		stats.add_dough("PLO", dough)
+	elif pat_mitt:
+		sheet.write(entry_cnt,row,"MITT")
+		stats.add_hrs("MITT", hours)
+		stats.add_dough("MITT", dough)
+	else:
+		sheet.write(entry_cnt,row,"NLHE")
+		stats.add_hrs("NLHE", hours)
+		stats.add_dough("NLHE", dough)
+	row += 1
+
+    # Write money made/lost
+	sheet.write(entry_cnt,row,dough)
+	row += 1
+
+    # Write money given away
+	sheet.write(entry_cnt,row,given_dough)
+	row += 1
+
+	# Write Hours
+	sheet.write(entry_cnt,row,hours)
+	row += 1
+
+	return row
 
 def add_entry(stats, sheet, entry_cnt, line):
 	#print line
@@ -101,17 +126,12 @@ def add_entry(stats, sheet, entry_cnt, line):
 	else:
 		print "Invalid entry format.  Needs either 3 or 4 /-delimited values"
 
-	# Write Date, Location, Game
-	cur_row = fill_date_location(stats, sheet, cur_row, entry_cnt, date, place)
+	# Write Date, Location, Game, Dough, Hours
+	cur_row = fill_entry_row(stats, sheet, cur_row, entry_cnt, date, place,
+	                         dough, int(hours))
 	#print "dough=" + dough + ", hours=" + str(hours)
 
-	# Write winnings/losings and money given (if any)
-	cur_row = fill_cash_result(stats, sheet, cur_row, entry_cnt, dough)
-
-	# Write Hours
-	sheet.write(entry_cnt,cur_row,int(hours))
-
-def add_totals(sheet, entry_cnt):
+def add_totals(stats, sheet, entry_cnt):
 	sheet.write(entry_cnt+1,2,'Total')
 	sheet.write(entry_cnt+1,3,xlwt.Formula('SUM(D1:D' + str(entry_cnt) + ')'))
 	sheet.write(entry_cnt+1,4,xlwt.Formula('SUM(E1:E' + str(entry_cnt) + ')'))
@@ -139,7 +159,8 @@ def process_file(in_file, out_file):
 		if pat_entry.match(line):
 			# Found a session entry
 			if not year_list:
-				print "Must have a year before adding entries!  Invalid data file format"
+				print 'Must have a year before adding entries! ' \
+				      'Invalid data file format'
 				return
 			add_entry(stats, sheet, entry_cnt, line)
 			entry_cnt += 1
@@ -162,7 +183,7 @@ def process_file(in_file, out_file):
 		#if re.search(line.split())
 
 	# Add final totals if file doesn't already end in total
-	add_totals(sheet, entry_cnt)
+	add_totals(stats, sheet, entry_cnt)
 
 	wbk.save(out_file)
 
