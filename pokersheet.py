@@ -21,23 +21,23 @@ class AnnualStats:
 	def __init__(self, yr):
 		self.year = yr
 
-	def add_game(game):
-		if not game in games:
-			games[game] = {'hrs': 0, 'dough': 0}
+	def add_game(self, game):
+		if not game in self.games:
+			self.games[game] = {'hrs': 0, 'dough': 0}
 
-	def add_dough(game, dough):
-		if not game in games:
+	def add_dough(self, game, dough):
+		if not game in self.games:
 			print "no game error"
 			return
-		games[game]['dough'] += dough
-		print ("Added %d to get new dough %d" % (dough, games[game]['dough']))
+		self.games[game]['dough'] += dough
+		print ("Added %d to get new dough %d" % (dough, self.games[game]['dough']))
 
-	def add_hrs(game, hrs):
-		if not game in games:
+	def add_hrs(self, game, hrs):
+		if not game in self.games:
 			print "no game error"
 			return
-		games[game]['hrs'] += dough
-		print ("Added %d to get new hrs %d" % (hrs, games[game]['hrs']))
+		self.games[game]['hrs'] += dough
+		print ("Added %d to get new hrs %d" % (hrs, self.games[game]['hrs']))
 
 def get_args():
 	"""Parse and return command-line arguments passed"""
