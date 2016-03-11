@@ -45,7 +45,7 @@ def get_args():
 	parser.add_argument('-i', '--input', default='pokerdata',
 	                    help='input pokerdata file (in format from iphone ' +
 	                    'notes)')
-	parser.add_argument('-o', '--output', action='store_true',
+	parser.add_argument('-o', '--output',
 	                    default='pokersheet.xls', help='output xls file ' +
 	                    'containing poker data')
 	return parser.parse_args()
@@ -131,11 +131,27 @@ def add_entry(stats, sheet, entry_cnt, line):
 	                         dough, int(hours))
 	#print "dough=" + dough + ", hours=" + str(hours)
 
+
 def add_totals(stats, sheet, entry_cnt):
+	# One row beneath the list of entries, create a row for totals
 	sheet.write(entry_cnt+1,2,'Total')
-	sheet.write(entry_cnt+1,3,xlwt.Formula('SUM(D1:D' + str(entry_cnt) + ')'))
+
+	# Total for $ earned
 	sheet.write(entry_cnt+1,4,xlwt.Formula('SUM(E1:E' + str(entry_cnt) + ')'))
+
+	# Total for $ given
 	sheet.write(entry_cnt+1,5,xlwt.Formula('SUM(F1:F' + str(entry_cnt) + ')'))
+
+	# Total for hours played
+	sheet.write(entry_cnt+1,6,xlwt.Formula('SUM(G1:G' + str(entry_cnt) + ')'))
+
+	# Beneath that, create a row for the hourly rate
+	sheet.write(entry_cnt+2,2,'Hourly Rate')
+
+	# Now create an entry for the hourly rate
+	#sheet.write(entry_cnt+2,3,xlwt.Formula('E' + str(entry_cnt + 2) + ' / ' +
+	sheet.write(entry_cnt+2,3,xlwt.Formula('E' + str(entry_cnt + 2) + ' / ' +
+                                           'G' + str(entry_cnt + 2)))
 
 def process_file(in_file, out_file):
 	flines = in_file.readlines()
