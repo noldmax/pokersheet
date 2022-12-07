@@ -27,14 +27,14 @@ class AnnualStats:
 
 	def add_dough(self, game, dough):
 		if not game in self.games:
-			print "no game error"
+			print ("no game error")
 			return
 		self.games[game]['dough'] += dough
 		print ("Added %d to get new dough %d" % (dough, self.games[game]['dough']))
 
 	def add_hrs(self, game, hrs):
 		if not game in self.games:
-			print "no game error"
+			print ("no game error")
 			return
 		self.games[game]['hrs'] += hrs
 		print ("Added %d to get new hrs %d" % (hrs, self.games[game]['hrs']))
@@ -61,21 +61,21 @@ def fill_entry_row(stats, sheet, row, entry_cnt, date, place, dough_str, hours):
 	    # If winnings listed with following (X),
 	    # that specifies amount of winnings given away
 		result = re.search("(.*)\w?(\(.*\))\w?$", dough_str)
-		print "matched ("
+		print ("matched (")
 	else:
 	    # Just the winnings listed, so grab that value (in result)
 		result = re.search("(.*)\w?$", dough_str)
-		print "nope, no ("
+		print ("nope, no (")
 	given = re.search("\((.*)\)", dough_str)
 	if result:
-		print "result=" + result.group(1)
+		print ("result=" + result.group(1))
 		# Strip '+' if positive result
 		result = re.search("\+?(.*)", result.group(1))
 		dough = int(result.group(1))
 	else:
 	    dough = 0
 	if given:
-		print "given=" + given.group(1)
+		print ("given=" + given.group(1))
 		given_dough = int(given.group(1))
 	else:
 	    given_dough = 0
@@ -124,7 +124,7 @@ def add_entry(stats, sheet, entry_cnt, line):
 		date, place, dough = line.split(" - ")
 		hours = '4'
 	else:
-		print "Invalid entry format.  Needs either 3 or 4 /-delimited values"
+		print ("Invalid entry format.  Needs either 3 or 4 /-delimited values")
 
 	# Write Date, Location, Game, Dough, Hours
 	cur_row = fill_entry_row(stats, sheet, cur_row, entry_cnt, date, place,
@@ -175,27 +175,27 @@ def process_file(in_file, out_file):
 		if pat_entry.match(line):
 			# Found a session entry
 			if not year_list:
-				print 'Must have a year before adding entries! ' \
-				      'Invalid data file format'
+				print ('Must have a year before adding entries! ' \
+				      'Invalid data file format')
 				return
 			add_entry(stats, sheet, entry_cnt, line)
 			entry_cnt += 1
-			#print "Date " + pat_entry.match(line).group(0)
+			#print ("Date " + pat_entry.match(line).group(0))
 		elif pat_year.match(line):
 			# Found a year
 			if entry_cnt != 0:
 				add_totals(stats, sheet, entry_cnt)
 			year = (int)(pat_year.match(line).group(0))
 			if year not in year_list:
-				print "Year " + pat_year.match(line).group(0)
+				print ("Year " + pat_year.match(line).group(0))
 				stats = AnnualStats(year)
 				sheet = wbk.add_sheet(str(year))
 				year_list.append(year)
 			entry_cnt = 0
 		else:
 			if line != '\n':
-				print "Found some other kind of line"
-				print line
+				print ("Found some other kind of line")
+				print (line)
 		#if re.search(line.split())
 
 	# Add final totals if file doesn't already end in total
