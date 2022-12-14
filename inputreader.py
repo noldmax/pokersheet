@@ -3,6 +3,7 @@
 
 import re
 import argparse
+from enum import Enum
 
 class AutoVivification(dict):
 	"""Implementation of perl's autovivification feature."""
@@ -13,6 +14,27 @@ class AutoVivification(dict):
 			value = self[item] = type(self)()
 			return value
 
+class Game(Enum):
+	NLHE = 1
+	PLO = 2
+	MITT = 3
+
+class Session:
+	date : str
+	place : str
+	balance : int
+	hours : int
+	given : int
+	game : Game
+	
+	def __init__(self, date, place, balance, hours, given, game):
+		self.date = date
+		self.place = place
+		self.balance = balance
+		self.hours = hours
+		self.given = given
+		self.game = game
+	
 class AnnualStats:
 	year = ""
 	games = {}
@@ -49,8 +71,25 @@ def get_args():
 	                    'containing poker data')
 	return parser.parse_args()
 
-def fill_entry_row(stats, row, entry_cnt, date, place, dough_str, hours):
+def add_entry(stats, entry_cnt, line):
+	date : str
+	place : str
+	dough_str : str
+	dough : int
+	given : int
 
+	# Extract entry components
+	if len(line.split(" - ")) == 4:
+		date, place, dough_str, hours = line.split(" - ")
+	elif len(line.split(" - ")) == 3:
+		# If hours not specified, assume 4
+		date, place, dough_str = line.split(" - ")
+		hours = '4'
+	else:
+		print ("Invalid entry format.  Needs either 3 or 4 /-delimited values")
+
+	#print "dough=" + dough + ", hours=" + str(hours)
+	
 	# Check for cash given after win
 	if re.match(".*[(]", dough_str):
 	    # If winnings listed with following (X),
@@ -74,43 +113,20 @@ def fill_entry_row(stats, row, entry_cnt, date, place, dough_str, hours):
 		given_dough = int(given.group(1))
 	else:
 	    given_dough = 0
-
+	    
 	# Identify game type and store stats for that game
 	#pat_plo = re.search(".*{(PLO),(plo)}$", place)
 	pat_plo = re.search(".*(PLO)$", place)
 	pat_mitt = re.search(".*(MITT)$", place)
 	if pat_plo:
-		stats.add_hrs("PLO", hours)
-		stats.add_dough("PLO", dough)
+		game = Game.PLO
 	elif pat_mitt:
-		stats.add_hrs("MITT", hours)
-		stats.add_dough("MITT", dough)
+		game = Game.MITT
 	else:
-		stats.add_hrs("NLHE", hours)
-		stats.add_dough("NLHE", dough)
-	row += 1
-
-	return row
-
-def add_entry(stats, entry_cnt, line):
-	#print line
-	cur_row = 1;
-
-	# Extract entry components
-	if len(line.split(" - ")) == 4:
-		date, place, dough, hours = line.split(" - ")
-	elif len(line.split(" - ")) == 3:
-		# If hours not specified, assume 4
-		date, place, dough = line.split(" - ")
-		hours = '4'
-	else:
-		print ("Invalid entry format.  Needs either 3 or 4 /-delimited values")
-
-	# Write Date, Location, Game, Dough, Hours
-	cur_row = fill_entry_row(stats, cur_row, entry_cnt, date, place,
-	                         dough, int(hours))
-	#print "dough=" + dough + ", hours=" + str(hours)
-
+		game = Game.NLHE
+		
+	# Create new session instance and add to list
+	session_list.append(Session(date, place, dough, hours, given_dough, game))
 
 def process_file(in_file, out_file):
 	flines = in_file.readlines()
@@ -172,6 +188,8 @@ def process_file(in_file, out_file):
 		#if re.search(line.split())
 
 args = get_args()
+
+session_list = []
 
 input_file = open(args.input)
 output_file = args.output
