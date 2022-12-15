@@ -20,6 +20,7 @@ class Game(Enum):
 	MITT = 3
 
 class Session:
+	year: int
 	date : str
 	place : str
 	balance : int
@@ -27,7 +28,8 @@ class Session:
 	given : int
 	game : Game
 	
-	def __init__(self, date, place, balance, hours, given, game):
+	def __init__(self, year, date, place, balance, hours, given, game):
+		self.year = year
 		self.date = date
 		self.place = place
 		self.balance = balance
@@ -36,13 +38,14 @@ class Session:
 		self.game = game
 		
 	def __str__(self):
-		return "Date    = %s\n" \
+		return "Year    = %d\n" \
+				"Date    = %s\n" \
 				"Place   = %s\n" \
 				"$       = %s\n" \
 				"Hours   = %s\n" \
 				"$ Given = %s\n" \
 				"Game    = %s\n" \
-				% (self.date, self.place, self.balance, \
+				% (self.year, self.date, self.place, self.balance, \
 				self.hours, self.given, self.game)
 	
 class AnnualStats:
@@ -81,7 +84,7 @@ def get_args():
 	                    'containing poker data')
 	return parser.parse_args()
 
-def add_entry(stats, entry_cnt, line):
+def add_entry(stats, entry_cnt, line, year):
 	date : str
 	place : str
 	dough_str : str
@@ -136,7 +139,7 @@ def add_entry(stats, entry_cnt, line):
 		game = Game.NLHE
 		
 	# Create new session instance and add to list
-	session_list.append(Session(date, place, dough, hours, given_dough, game))
+	session_list.append(Session(year, date, place, dough, hours, given_dough, game))
 
 def process_file(in_file, out_file):
 	flines = in_file.readlines()
@@ -161,7 +164,8 @@ def process_file(in_file, out_file):
 	# 2009 total - +1002(672)
 	pat_yearend = re.compile(r"\d{4}")
 	entry_cnt = 0
-	year_list = []	
+	year_list = []
+	year : int = 0
 
 	# Read each line from the poker data file
 	for line in flines:
@@ -170,13 +174,13 @@ def process_file(in_file, out_file):
 			
 			# Empty year_list means sessions listed before an
 			# initial year was provided.  Bad format.
-			if not year_list:
+			if year == 0:
 				print ('Must have a year before adding entries! ' \
 				      'Invalid data file format')
 				return
 			
 			# Process the session entry
-			add_entry(stats, entry_cnt, line)
+			add_entry(stats, entry_cnt, line, year)
 			entry_cnt += 1
 			#print ("Date " + pat_entry.match(line).group(0))
 			
