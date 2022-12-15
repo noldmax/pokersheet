@@ -49,11 +49,17 @@ class Session:
 				self.hours, self.given, self.game)
 	
 class AnnualStats:
-	year = ""
+	year : int = 0
 	games = {}
 
 	def __init__(self, yr):
 		self.year = yr
+
+	def __str__(self):
+		stats_string = str(self.year)
+		for game in self.games.keys():
+			stats_string += "\n%s" % (game)
+		return stats_string
 
 	def add_game(self, game):
 		if not game in self.games:
@@ -73,6 +79,11 @@ class AnnualStats:
 		self.games[game]['hrs'] += hrs
 		print ("Added %d to get new hrs %d" % (hrs, self.games[game]['hrs']))
 
+	def add_session(self, session):
+		self.add_game(session.game)
+		self.add_dough(session.game, session.balance)
+		self.add_hrs(session.game, int(session.hours))
+
 def get_args():
 	"""Parse and return command-line arguments passed"""
 	parser = argparse.ArgumentParser(description='Parse poker data, create XLS')
@@ -83,6 +94,20 @@ def get_args():
 	                    default='pokersheet.xls', help='output xls file ' +
 	                    'containing poker data')
 	return parser.parse_args()
+
+def generate_annual_stats(session_list, annual_stats_list):
+	for session in session_list:
+		found_annual : bool = False
+		for annual_stats in annual_stats_list:
+			if annual_stats.year == session.year:
+				annual_stats.add_session(session)
+				found_annual = True
+				
+		# If we found no year, initialize a new AnnualStats and add the session
+		if found_annual != True:
+			new_annual_stats = AnnualStats(session.year)
+			annual_stats_list.append(new_annual_stats)
+			new_annual_stats.add_session(session)
 
 def add_entry(stats, entry_cnt, line, year):
 	date : str
@@ -203,7 +228,8 @@ def process_file(in_file, out_file):
 
 args = get_args()
 
-session_list = []
+session_list : Session = []
+annual_stats_list : AnnualStats = []
 
 input_file = open(args.input)
 output_file = args.output
@@ -211,3 +237,7 @@ process_file(input_file, output_file)
 
 print (session_list[0])
 
+# Generate AnnualStats
+generate_annual_stats(session_list, annual_stats_list)
+
+print (annual_stats_list[0])
