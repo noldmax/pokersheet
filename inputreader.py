@@ -34,6 +34,16 @@ class Session:
 		self.hours = hours
 		self.given = given
 		self.game = game
+		
+	def __str__(self):
+		return "Date    = %s\n" \
+				"Place   = %s\n" \
+				"$       = %s\n" \
+				"Hours   = %s\n" \
+				"$ Given = %s\n" \
+				"Game    = %s\n" \
+				% (self.date, self.place, self.balance, \
+				self.hours, self.given, self.game)
 	
 class AnnualStats:
 	year = ""
@@ -194,4 +204,6 @@ session_list = []
 input_file = open(args.input)
 output_file = args.output
 process_file(input_file, output_file)
+
+print (session_list[0])
 
