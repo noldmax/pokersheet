@@ -36,7 +36,7 @@ class Session:
 		self.hours = hours
 		self.given = given
 		self.game = game
-		
+
 	def __str__(self):
 		return "Year    = %d\n" \
 				"Date    = %s\n" \
@@ -49,16 +49,15 @@ class Session:
 				self.hours, self.given, self.game)
 	
 class AnnualStats:
-	year : int = 0
-	games = {}
 
-	def __init__(self, yr):
+	def __init__(self, yr : int):
 		self.year = yr
+		self.games = {}
 
 	def __str__(self):
 		stats_string = str(self.year)
 		for game in self.games.keys():
-			stats_string += "\n%s" % (game)
+			stats_string += "\n%s | %d | %d" % (game, self.games[game]['dough'], self.games[game]['hrs'])
 		return stats_string
 
 	def add_game(self, game):
@@ -70,19 +69,20 @@ class AnnualStats:
 			print ("no game error")
 			return
 		self.games[game]['dough'] += dough
-		print ("Added %d to get new dough %d" % (dough, self.games[game]['dough']))
+		#print ("Added %d to get new dough %d" % (dough, self.games[game]['dough']))
 
 	def add_hrs(self, game, hrs):
 		if not game in self.games:
 			print ("no game error")
 			return
 		self.games[game]['hrs'] += hrs
-		print ("Added %d to get new hrs %d" % (hrs, self.games[game]['hrs']))
+		#print ("Added %d to get new hrs %d" % (hrs, self.games[game]['hrs']))
 
 	def add_session(self, session):
 		self.add_game(session.game)
 		self.add_dough(session.game, session.balance)
 		self.add_hrs(session.game, int(session.hours))
+
 
 def get_args():
 	"""Parse and return command-line arguments passed"""
@@ -105,6 +105,7 @@ def generate_annual_stats(session_list, annual_stats_list):
 				
 		# If we found no year, initialize a new AnnualStats and add the session
 		if found_annual != True:
+			#print ("New year %s" % (session.year))
 			new_annual_stats = AnnualStats(session.year)
 			annual_stats_list.append(new_annual_stats)
 			new_annual_stats.add_session(session)
@@ -133,21 +134,21 @@ def add_entry(stats, entry_cnt, line, year):
 	    # If winnings listed with following (X),
 	    # that specifies amount of winnings given away
 		result = re.search("(.*)\w?(\(.*\))\w?$", dough_str)
-		print ("matched (")
+		#print ("matched (")
 	else:
 	    # Just the winnings listed, so grab that value (in result)
 		result = re.search("(.*)\w?$", dough_str)
-		print ("nope, no (")
+		#print ("nope, no (")
 	given = re.search("\((.*)\)", dough_str)
 	if result:
-		print ("result=" + result.group(1))
+		#print ("result=" + result.group(1))
 		# Strip '+' if positive result
 		result = re.search("\+?(.*)", result.group(1))
 		dough = int(result.group(1))
 	else:
 	    dough = 0
 	if given:
-		print ("given=" + given.group(1))
+		#print ("given=" + given.group(1))
 		given_dough = int(given.group(1))
 	else:
 	    given_dough = 0
@@ -237,7 +238,12 @@ process_file(input_file, output_file)
 
 print (session_list[0])
 
+print (session_list[-1])
+
 # Generate AnnualStats
 generate_annual_stats(session_list, annual_stats_list)
 
-print (annual_stats_list[0])
+# Print each year
+for year_stats in annual_stats_list:
+	print("-----")
+	print(year_stats)
